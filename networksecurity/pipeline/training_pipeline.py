@@ -8,6 +8,7 @@ from networksecurity.components.data_ingestion import DataIngestion
 from networksecurity.components.data_validation import DataValidation
 from networksecurity.components.data_transformation import DataTransformation
 from networksecurity.components.model_trainer import ModelTrainer
+from networksecurity.cloud.s3_syncer import s3sync
 
 from networksecurity.entity.config_entity import (
     TrainingPipelineConfig,
@@ -24,10 +25,11 @@ from networksecurity.entity.artifact_entity import (
     ModelTrainerArtifact
 )
 import sys
-
+from networksecurity.constant.training_pipeline import TRAINING_BUCKET_NAME,SAVED_MODEL_DIR
 class TrainingPipieline:
     def __init__(self):
         self.training_pipeline_config=TrainingPipelineConfig()
+        self.s3sync=s3sync()
 
     def start_data_ingestion(self):
         try:
@@ -79,12 +81,30 @@ class TrainingPipieline:
         except Exception as e:
             raise NetworkSecurityException(e, sys)
         
+    def sync_Artifact_dit_to_s3(self):
+        try:
+            aws_bucket_url=f"s3://{TRAINING_BUCKET_NAME}/artifact/{self.training_pipeline_config.timestamp}"
+            self.s3sync.sync_folder_to_s3(folder=self.training_pipeline_config.artifact_dir,aws_bucket_url=aws_bucket_url)
+        except Exception as e:
+            raise NetworkSecurityException(e,sys)
+        
+    def sync_saved_model_dit_to_s3(self):
+        try:
+            aws_bucket_url=f"s3://{TRAINING_BUCKET_NAME}/final_model/{self.training_pipeline_config.timestamp}"
+            self.s3sync.sync_folder_to_s3(folder=self.training_pipeline_config.model_dir,aws_bucket_url=aws_bucket_url)
+        except Exception as e:
+            raise NetworkSecurityException(e,sys)
+        
+        
     def run_pipeline(self):
         try:
             data_ingestion_artifact=self.start_data_ingestion()
             data_validation_artifact=self.start_data_validation(data_ingestion_artifact=data_ingestion_artifact)
             data_transformation_artifact=self.start_data_transformation(data_validation_artifact=data_validation_artifact)
             model_trainer_artifact=self.start_model_trainer(data_transformation_artifact=data_transformation_artifact)
+
+            self.sync_Artifact_dit_to_s3()
+            self.sync_saved_model_dit_to_s3()
             
             return model_trainer_artifact
         except Exception as e:
