@@ -5,7 +5,11 @@ pymongo
 certifi
 scikit-learn
 dill
+fastapi
+uvicorn
+python-multipart
 pyaml
+dagshub
 mlflow
 
 ##-e .
