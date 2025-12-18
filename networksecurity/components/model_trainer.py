@@ -23,6 +23,8 @@ from sklearn.ensemble import (
 )
 import mlflow
 import dagshub
+from urllib.parse import urlparse
+
 dagshub.init(repo_owner='Countgreen', repo_name='Network_Security_System', mlflow=True)
 
 class ModelTrainer:
